@@ -1,4 +1,4 @@
-import { Video } from '@/lib/types';
+import { Video } from './types';
 
 export interface YouTubeApiResponse {
   items: {

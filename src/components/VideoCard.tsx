@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { Video } from '@/lib/types'
+import { Video } from '../lib/types'
 
 interface VideoCardProps {
   video: Video

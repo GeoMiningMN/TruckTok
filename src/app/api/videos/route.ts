@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { Video } from '@/lib/types'
+import { Video } from '../../../lib/types'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)

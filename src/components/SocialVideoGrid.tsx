@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { VideoCard } from './VideoCard'
-import { Video } from '@/lib/types'
+import { Video } from '../lib/types'
 
 interface SocialVideoGridProps {
   searchQuery?: string;
