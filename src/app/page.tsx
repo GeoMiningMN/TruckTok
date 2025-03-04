@@ -16,7 +16,7 @@ export default function Home() {
       <Header onSearch={handleSearch} />
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold text-center mb-8">
-          Welcome to TruckTok
+          Welcome to Seeley's TruckTok
         </h1>
         <p className="text-xl text-center mb-12 text-gray-600">
           Discover amazing custom truck videos from around the world
