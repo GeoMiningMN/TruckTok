@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { Video } from '../../../lib/types'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -18,15 +19,21 @@ export async function GET(request: Request) {
     )
     const videosData = await videosResponse.json()
 
-    const videos = videosData.items.map((video: any) => ({
+    const videos: Video[] = videosData.items.map((video: any) => ({
       id: video.id,
       title: video.snippet.title,
+      description: video.snippet.description,
       thumbnail: video.snippet.thumbnails.high.url,
-      views: formatViews(video.statistics.viewCount),
-      duration: formatDuration(video.contentDetails.duration),
+      thumbnailUrl: video.snippet.thumbnails.high.url,
+      publishedAt: video.snippet.publishedAt,
+      channelTitle: video.snippet.channelTitle,
       creator: video.snippet.channelTitle,
+      views: formatViews(video.statistics.viewCount),
+      viewCount: video.statistics.viewCount,
+      duration: formatDuration(video.contentDetails.duration),
+      likeCount: video.statistics.likeCount,
       videoUrl: `https://www.youtube.com/watch?v=${video.id}`,
-      platform: 'youtube'
+      platform: 'youtube' as const
     }))
 
     return NextResponse.json(videos)
