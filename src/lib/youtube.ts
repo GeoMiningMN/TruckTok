@@ -1,13 +1,4 @@
-export interface YouTubeVideo {
-  id: string;
-  title: string;
-  description: string;
-  thumbnailUrl: string;
-  publishedAt: string;
-  channelTitle: string;
-  viewCount?: string;
-  likeCount?: string;
-}
+import { Video } from '@/lib/types';
 
 export interface YouTubeApiResponse {
   items: {
@@ -29,18 +20,27 @@ export interface YouTubeApiResponse {
       viewCount: string;
       likeCount: string;
     };
+    contentDetails?: {
+      duration: string;
+    };
   }[];
 }
 
-export function mapYouTubeApiResponse(response: YouTubeApiResponse): YouTubeVideo[] {
+export function mapYouTubeApiResponse(response: YouTubeApiResponse): Video[] {
   return response.items.map((item) => ({
     id: item.id.videoId,
     title: item.snippet.title,
     description: item.snippet.description,
+    thumbnail: item.snippet.thumbnails.high.url,
     thumbnailUrl: item.snippet.thumbnails.high.url,
     publishedAt: item.snippet.publishedAt,
     channelTitle: item.snippet.channelTitle,
-    viewCount: item.statistics?.viewCount,
+    creator: item.snippet.channelTitle,
+    views: item.statistics?.viewCount || '0',
+    viewCount: item.statistics?.viewCount || '0',
+    duration: item.contentDetails?.duration || '',
     likeCount: item.statistics?.likeCount,
+    videoUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+    platform: 'youtube' as const,
   }));
 } 

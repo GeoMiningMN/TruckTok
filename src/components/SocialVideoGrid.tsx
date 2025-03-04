@@ -2,17 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { VideoCard } from './VideoCard'
-
-interface Video {
-  id: string;
-  title: string;
-  thumbnail: string;
-  views: string;
-  duration: string;
-  creator: string;
-  videoUrl: string;
-  platform: 'youtube' | 'tiktok' | 'twitter';
-}
+import { Video } from '@/lib/types'
 
 interface SocialVideoGridProps {
   searchQuery?: string;

@@ -2,10 +2,10 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { YouTubeVideo } from '../lib/youtube'
+import { Video } from '@/lib/types'
 
 interface VideoCardProps {
-  video: YouTubeVideo
+  video: Video
 }
 
 export const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
