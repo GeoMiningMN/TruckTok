@@ -18,4 +18,4 @@ export interface Video {
 // Type guard to check if a video is from YouTube
 export function isYouTubeVideo(video: Video): boolean {
   return video.platform === 'youtube';
-} 
+}
