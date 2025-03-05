@@ -1,24 +1,11 @@
 import { NextResponse } from 'next/server'
-import crypto from 'crypto'
 
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
-      X_API_KEY: string
-      X_API_SECRET: string
-      X_ACCESS_TOKEN: string
-      X_ACCESS_TOKEN_SECRET: string
+      TWITTER_BEARER_TOKEN: string
     }
   }
-}
-
-interface TwitterParameters {
-  oauth_consumer_key: string
-  oauth_nonce: string
-  oauth_signature_method: string
-  oauth_timestamp: string
-  oauth_token: string
-  oauth_version: string
 }
 
 interface TwitterTweet {
@@ -46,70 +33,23 @@ export async function GET(request: Request) {
   const query = searchParams.get('q') || 'custom trucks'
 
   try {
-    const apiKey = process.env.X_API_KEY
-    const apiSecret = process.env.X_API_SECRET
-    const accessToken = process.env.X_ACCESS_TOKEN
-    const accessTokenSecret = process.env.X_ACCESS_TOKEN_SECRET
+    const bearerToken = process.env.TWITTER_BEARER_TOKEN
 
-    if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) {
-      console.error('Missing X API credentials:', {
-        hasApiKey: !!apiKey,
-        hasApiSecret: !!apiSecret,
-        hasAccessToken: !!accessToken,
-        hasAccessTokenSecret: !!accessTokenSecret
-      })
-      throw new Error('Missing X API credentials')
-    }
-
-    // Create the OAuth 1.0a signature
-    const timestamp = Math.floor(Date.now() / 1000).toString()
-    const nonce = crypto.randomBytes(32).toString('hex')
-
-    const parameters: TwitterParameters = {
-      oauth_consumer_key: apiKey,
-      oauth_nonce: nonce,
-      oauth_signature_method: 'HMAC-SHA1',
-      oauth_timestamp: timestamp,
-      oauth_token: accessToken,
-      oauth_version: '1.0'
+    if (!bearerToken) {
+      console.error('Missing Twitter Bearer Token')
+      throw new Error('Missing Twitter Bearer Token')
     }
 
     const baseUrl = 'https://api.twitter.com/2/tweets/search/recent'
     const encodedQuery = encodeURIComponent(`${query} has:videos`)
-
-    // Generate signature
-    const signatureBaseString = [
-      'GET',
-      encodeURIComponent(baseUrl),
-      encodeURIComponent(
-        Object.keys(parameters)
-          .sort()
-          .map(key => `${key}=${parameters[key as keyof TwitterParameters]}`)
-          .join('&')
-      )
-    ].join('&')
-
-    const signingKey = `${encodeURIComponent(apiSecret)}&${encodeURIComponent(accessTokenSecret)}`
-    const signature = crypto
-      .createHmac('sha1', signingKey)
-      .update(signatureBaseString)
-      .digest('base64')
-
-    // Create Authorization header
-    const authHeader = 'OAuth ' + Object.entries({
-      ...parameters,
-      oauth_signature: signature
-    })
-      .map(([key, value]) => `${key}="${encodeURIComponent(value)}"`)
-      .join(', ')
-
-    console.log('Making request to X API with query:', query)
+    
+    console.log('Making request to Twitter API with query:', query)
     
     const response = await fetch(
       `${baseUrl}?query=${encodedQuery}&tweet.fields=public_metrics,created_at&expansions=author_id,attachments.media_keys&media.fields=preview_image_url,url,duration_ms`,
       {
         headers: {
-          Authorization: authHeader,
+          'Authorization': `Bearer ${bearerToken}`,
           'Content-Type': 'application/json',
         },
       }
@@ -117,20 +57,20 @@ export async function GET(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('X API error:', {
+      console.error('Twitter API error:', {
         status: response.status,
         statusText: response.statusText,
         errorText,
         headers: Array.from(response.headers).reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
       })
-      throw new Error(`X API error: ${response.status} - ${errorText}`)
+      throw new Error(`Twitter API error: ${response.status} - ${errorText}`)
     }
 
     const data = await response.json() as TwitterResponse
-    console.log('X API response:', JSON.stringify(data, null, 2))
+    console.log('Twitter API response:', JSON.stringify(data, null, 2))
 
     if (!data.data || !Array.isArray(data.data)) {
-      console.warn('Unexpected X API response format:', data)
+      console.warn('Unexpected Twitter API response format:', data)
       return NextResponse.json([])
     }
 
