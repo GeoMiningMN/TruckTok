@@ -1,6 +1,46 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      X_API_KEY: string
+      X_API_SECRET: string
+      X_ACCESS_TOKEN: string
+      X_ACCESS_TOKEN_SECRET: string
+    }
+  }
+}
+
+interface TwitterParameters {
+  oauth_consumer_key: string
+  oauth_nonce: string
+  oauth_signature_method: string
+  oauth_timestamp: string
+  oauth_token: string
+  oauth_version: string
+}
+
+interface TwitterTweet {
+  id: string
+  text: string
+  created_at: string
+  author_id: string
+  public_metrics?: {
+    view_count?: number
+  }
+  attachments?: {
+    media?: Array<{
+      preview_image_url?: string
+      duration_ms?: number
+    }>
+  }
+}
+
+interface TwitterResponse {
+  data: TwitterTweet[]
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const query = searchParams.get('q') || 'custom trucks'
@@ -25,7 +65,7 @@ export async function GET(request: Request) {
     const timestamp = Math.floor(Date.now() / 1000).toString()
     const nonce = crypto.randomBytes(32).toString('hex')
 
-    const parameters = {
+    const parameters: TwitterParameters = {
       oauth_consumer_key: apiKey,
       oauth_nonce: nonce,
       oauth_signature_method: 'HMAC-SHA1',
@@ -44,7 +84,7 @@ export async function GET(request: Request) {
       encodeURIComponent(
         Object.keys(parameters)
           .sort()
-          .map(key => `${key}=${parameters[key]}`)
+          .map(key => `${key}=${parameters[key as keyof TwitterParameters]}`)
           .join('&')
       )
     ].join('&')
@@ -81,12 +121,12 @@ export async function GET(request: Request) {
         status: response.status,
         statusText: response.statusText,
         errorText,
-        headers: Object.fromEntries(response.headers.entries())
+        headers: Object.fromEntries([...response.headers.entries()])
       })
       throw new Error(`X API error: ${response.status} - ${errorText}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as TwitterResponse
     console.log('X API response:', JSON.stringify(data, null, 2))
 
     if (!data.data || !Array.isArray(data.data)) {
@@ -107,7 +147,7 @@ export async function GET(request: Request) {
       creator: `@${tweet.author_id}`,
       channelTitle: `@${tweet.author_id}`,
       videoUrl: `https://twitter.com/i/status/${tweet.id}`,
-      platform: 'twitter'
+      platform: 'twitter' as const
     }))
 
     return NextResponse.json(videos)
