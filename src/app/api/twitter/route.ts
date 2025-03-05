@@ -121,7 +121,7 @@ export async function GET(request: Request) {
         status: response.status,
         statusText: response.statusText,
         errorText,
-        headers: Object.fromEntries([...response.headers.entries()])
+        headers: Array.from(response.headers).reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
       })
       throw new Error(`X API error: ${response.status} - ${errorText}`)
     }
