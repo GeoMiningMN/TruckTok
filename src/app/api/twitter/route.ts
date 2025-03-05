@@ -9,24 +9,24 @@ declare global {
   }
 }
 
-interface TwitterTweet {
-  id: string
-  text: string
-  created_at: string
-  author_id: string
+interface Tweet {
+  id: string;
+  text: string;
+  created_at: string;
+  author_id: string;
   public_metrics?: {
-    view_count?: number
-  }
+    view_count?: number;
+  };
   attachments?: {
     media?: Array<{
-      preview_image_url?: string
-      duration_ms?: number
-    }>
-  }
+      preview_image_url?: string;
+      duration_ms?: number;
+    }>;
+  };
 }
 
 interface TwitterResponse {
-  data: TwitterTweet[]
+  data?: Tweet[];
 }
 
 export async function GET(request: Request) {
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
       throw new Error('Failed to get access token')
     }
 
-    const tokenData = await tokenResponse.json()
+    const tokenData = await tokenResponse.json() as { access_token: string }
     const bearerToken = tokenData.access_token
 
     // Make the API request
@@ -79,10 +79,10 @@ export async function GET(request: Request) {
       throw new Error(`X API error: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as TwitterResponse
     console.log('X API response:', data)
 
-    const videos = data.data?.map((tweet: any) => ({
+    const videos = data.data?.map((tweet: Tweet) => ({
       id: tweet.id,
       title: tweet.text,
       description: tweet.text,
@@ -95,7 +95,7 @@ export async function GET(request: Request) {
       creator: `@${tweet.author_id}`,
       channelTitle: `@${tweet.author_id}`,
       videoUrl: `https://twitter.com/i/status/${tweet.id}`,
-      platform: 'twitter'
+      platform: 'twitter' as const
     })) || []
 
     return NextResponse.json(videos)
