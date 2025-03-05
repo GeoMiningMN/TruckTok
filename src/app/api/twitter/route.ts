@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
-      TWITTER_BEARER_TOKEN: string
+      X_API_KEY: string
+      X_API_SECRET: string
     }
   }
 }
@@ -33,20 +34,37 @@ export async function GET(request: Request) {
   const query = searchParams.get('q') || 'custom trucks'
 
   try {
-    const bearerToken = process.env.TWITTER_BEARER_TOKEN
+    const apiKey = process.env.X_API_KEY
+    const apiSecret = process.env.X_API_SECRET
 
-    if (!bearerToken) {
-      console.error('Missing Twitter Bearer Token')
-      throw new Error('Missing Twitter Bearer Token')
+    if (!apiKey || !apiSecret) {
+      throw new Error('Missing X API credentials')
     }
 
-    const baseUrl = 'https://api.twitter.com/2/tweets/search/recent'
-    const encodedQuery = encodeURIComponent(`${query} has:videos`)
-    
-    console.log('Making request to Twitter API with query:', query)
-    
+    // Get Bearer Token
+    const basicAuth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
+    const tokenResponse = await fetch('https://api.twitter.com/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${basicAuth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: 'grant_type=client_credentials'
+    })
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text()
+      console.error('X API token error:', errorText)
+      throw new Error('Failed to get access token')
+    }
+
+    const tokenData = await tokenResponse.json()
+    const bearerToken = tokenData.access_token
+
+    // Make the API request
+    const encodedQuery = encodeURIComponent(`${query} filter:videos`)
     const response = await fetch(
-      `${baseUrl}?query=${encodedQuery}&tweet.fields=public_metrics,created_at&expansions=author_id,attachments.media_keys&media.fields=preview_image_url,url,duration_ms`,
+      `https://api.twitter.com/2/tweets/search/recent?query=${encodedQuery}&tweet.fields=public_metrics,created_at&expansions=author_id,attachments.media_keys&media.fields=preview_image_url,url,duration_ms`,
       {
         headers: {
           'Authorization': `Bearer ${bearerToken}`,
@@ -57,24 +75,14 @@ export async function GET(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Twitter API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        headers: Array.from(response.headers).reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
-      })
-      throw new Error(`Twitter API error: ${response.status} - ${errorText}`)
+      console.error('X API error response:', errorText)
+      throw new Error(`X API error: ${response.statusText}`)
     }
 
-    const data = await response.json() as TwitterResponse
-    console.log('Twitter API response:', JSON.stringify(data, null, 2))
+    const data = await response.json()
+    console.log('X API response:', data)
 
-    if (!data.data || !Array.isArray(data.data)) {
-      console.warn('Unexpected Twitter API response format:', data)
-      return NextResponse.json([])
-    }
-
-    const videos = data.data.map(tweet => ({
+    const videos = data.data?.map((tweet: any) => ({
       id: tweet.id,
       title: tweet.text,
       description: tweet.text,
@@ -87,12 +95,12 @@ export async function GET(request: Request) {
       creator: `@${tweet.author_id}`,
       channelTitle: `@${tweet.author_id}`,
       videoUrl: `https://twitter.com/i/status/${tweet.id}`,
-      platform: 'twitter' as const
-    }))
+      platform: 'twitter'
+    })) || []
 
     return NextResponse.json(videos)
   } catch (error) {
-    console.error('Error in Twitter API route:', error)
+    console.error('Error fetching Twitter videos:', error)
     return NextResponse.json({ error: 'Failed to fetch Twitter videos' }, { status: 500 })
   }
 }
