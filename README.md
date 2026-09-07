@@ -8,7 +8,6 @@ Self-improving paper-trading bot scaffold based on the [Miles Deutscher “Build
 
 1. Create a virtualenv and install deps:
    ```bash
-   cd ai-trading-bot
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
